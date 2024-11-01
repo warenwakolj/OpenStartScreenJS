@@ -25,6 +25,59 @@ function getAllShortcuts(dir) {
     return results;
 }
 
+let currentContextMenu = null;
+
+function createContextMenu(shortcut) {
+    let contextMenu = document.getElementById('contextMenu');
+    if (!contextMenu) {
+        contextMenu = document.createElement('div');
+        contextMenu.id = 'contextMenu';
+        contextMenu.className = 'context-menu';
+        contextMenu.innerHTML = `
+            <div class="context-menu-content">
+                <button id="pinAppBtn" class="context-menu-btn">Pin to Start</button>
+            </div>
+        `;
+        document.body.appendChild(contextMenu);
+
+        contextMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', () => {
+            hideContextMenu();
+        });
+
+        const pinBtn = document.getElementById('pinAppBtn');
+        pinBtn.addEventListener('click', () => {
+            addAppTile(currentContextMenu.shortcut.name, currentContextMenu.shortcut.path);
+            hideContextMenu();
+        });
+    }
+
+    return contextMenu;
+}
+
+function showContextMenu(shortcut, event) {
+    const contextMenu = createContextMenu(shortcut);
+    contextMenu.shortcut = shortcut;
+    currentContextMenu = contextMenu;
+    
+    // Position and show the context menu
+    contextMenu.style.bottom = '0';
+    contextMenu.style.transform = 'translateY(0)';
+    contextMenu.style.opacity = '1';
+}
+
+function hideContextMenu() {
+    const contextMenu = document.getElementById('contextMenu');
+    if (contextMenu) {
+        contextMenu.style.bottom = '-80px';
+        contextMenu.style.transform = 'translateY(100%)';
+        contextMenu.style.opacity = '0';
+    }
+}
+
 function createShortcutTile(shortcut) {
     const tile = document.createElement('div');
     tile.className = 'icon-text-container';
@@ -46,7 +99,7 @@ function createShortcutTile(shortcut) {
 
     tile.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        addAppTile(shortcut.name, shortcut.path);
+        showContextMenu(shortcut, e);
     });
 
     return tile;
@@ -62,5 +115,4 @@ function displayShortcuts() {
     });
 }
 
-// Initialize the grid
 displayShortcuts();
