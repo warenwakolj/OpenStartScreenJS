@@ -2,6 +2,7 @@ const { app, BrowserWindow } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -31,3 +32,4 @@ app.on('activate', () => {
     createWindow()
   }
 })
+

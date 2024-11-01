@@ -1,29 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron'); 
 const { exec } = require('child_process');
 
 const PROGRAMS_PATH = 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs';
-
-function getAllShortcuts(dir) {
-    let results = [];
-    const items = fs.readdirSync(dir);
-
-    items.forEach(item => {
-        const fullPath = path.join(dir, item);
-        const stat = fs.statSync(fullPath);
-
-        if (stat.isDirectory()) {
-            results = results.concat(getAllShortcuts(fullPath));
-        } else if (item.endsWith('.lnk')) {
-            results.push({
-                name: path.parse(item).name,
-                path: fullPath
-            });
-        }
-    });
-
-    return results;
-}
 
 let currentContextMenu = null;
 
@@ -63,7 +43,6 @@ function showContextMenu(shortcut, event) {
     contextMenu.shortcut = shortcut;
     currentContextMenu = contextMenu;
     
-    // Position and show the context menu
     contextMenu.style.bottom = '0';
     contextMenu.style.transform = 'translateY(0)';
     contextMenu.style.opacity = '1';
@@ -80,7 +59,6 @@ function hideContextMenu() {
 
 function createShortcutTile(shortcut) {
     const tile = document.createElement('div');
-    tile.className = 'icon-text-container';
 
     tile.innerHTML = `
     <div class="icon-text-container">
@@ -93,6 +71,8 @@ function createShortcutTile(shortcut) {
         exec(`start "" "${shortcut.path}"`, (error) => {
             if (error) {
                 console.error('Error launching shortcut:', error);
+            } else {
+                app.quit();
             }
         });
     });
@@ -105,14 +85,59 @@ function createShortcutTile(shortcut) {
     return tile;
 }
 
+function getAllShortcuts(dir) {
+    let results = [];
+    const items = fs.readdirSync(dir);
+
+    items.forEach(item => {
+        const fullPath = path.join(dir, item);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+            results = results.concat(getAllShortcuts(fullPath));
+        } else if (item.endsWith('.lnk')) {
+            results.push({
+                name: path.parse(item).name,
+                path: fullPath,
+                folder: dir === PROGRAMS_PATH ? 'Root' : path.basename(dir)
+            });
+        }
+    });
+
+    return results;
+}
+
 function displayShortcuts() {
     const grid = document.getElementById('shortcutsGrid');
     const shortcuts = getAllShortcuts(PROGRAMS_PATH);
+    let lastFolder = ''; 
 
     shortcuts.forEach(shortcut => {
-        const tile = createShortcutTile(shortcut);
-        grid.appendChild(tile);
+        if (shortcut.folder === 'Root') {
+            const tile = createShortcutTile(shortcut);
+            grid.appendChild(tile);
+        }
+    });
+
+    const spacerColumn = document.createElement('div');
+    spacerColumn.className = 'spacing-column';
+    grid.appendChild(spacerColumn);
+
+    shortcuts.forEach(shortcut => {
+        if (shortcut.folder !== 'Root' && shortcut.folder !== lastFolder) {
+            const folderLabel = document.createElement('div');
+            folderLabel.className = 'folder-label';
+            folderLabel.textContent = shortcut.folder;
+            grid.appendChild(folderLabel);
+            lastFolder = shortcut.folder;
+        }
+
+        if (shortcut.folder !== 'Root') {
+            const tile = createShortcutTile(shortcut);
+            grid.appendChild(tile);
+        }
     });
 }
+
 
 displayShortcuts();
